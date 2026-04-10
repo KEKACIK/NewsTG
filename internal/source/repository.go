@@ -2,8 +2,8 @@ package source
 
 import (
 	"context"
-	"newtg/pkg/client/postgresql"
 	"newtg/pkg/logging"
+	"newtg/pkg/postgresql"
 )
 
 type repository struct {
@@ -13,8 +13,10 @@ type repository struct {
 
 func (r *repository) Create(ctx context.Context, source *Source) error {
 	q := `
-		INSERT INTO source (name)
-		VALUES ($1)
+		INSERT INTO source
+			(name)
+		VALUES
+			($1)
 		RETURNING id
 	`
 	r.logger.DebugSQL(q)
@@ -26,7 +28,7 @@ func (r *repository) Create(ctx context.Context, source *Source) error {
 
 	return nil
 }
-func (r *repository) GetAll(ctx context.Context, source Source) ([]Source, error) {
+func (r *repository) GetAll(ctx context.Context) ([]Source, error) {
 	q := `
 		SELECT
 			id, name
