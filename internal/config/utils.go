@@ -13,6 +13,7 @@ func initConfig() {
 		log.Fatal("Fatal error in environment variables")
 	}
 }
+
 func getStrEnv(key string, defaultVal string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
@@ -29,10 +30,19 @@ func getIntEnv(key string, defaultVal int) int {
 
 	return defaultVal
 }
+
 func getInt64Env(key string, defaultVal int64) int64 {
 	if value, exists := os.LookupEnv(key); exists {
 		int64Value, _ := strconv.ParseInt(value, 10, 64)
 		return int64Value
+	}
+
+	return defaultVal
+}
+
+func getBoolEnv(key string, defaultVal bool) bool {
+	if value, exists := os.LookupEnv(key); exists {
+		return value == "1"
 	}
 
 	return defaultVal

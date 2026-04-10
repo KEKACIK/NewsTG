@@ -3,6 +3,7 @@ package config
 import "fmt"
 
 type Config struct {
+	Debug            bool
 	TelegramBotToken string
 	TelegramChatID   int64
 
@@ -13,10 +14,12 @@ type Config struct {
 	PostgresPassword string
 }
 
-func GetConfig() *Config {
+func NewConfig() *Config {
 	initConfig()
 
 	return &Config{
+		Debug: getBoolEnv("DEBUG", false),
+
 		TelegramBotToken: getStrEnv("TELEGRAM_BOT_TOKEN", ""),
 		TelegramChatID:   getInt64Env("TELEGRAM_CHAT_ID", 0),
 
