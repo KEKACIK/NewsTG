@@ -63,6 +63,40 @@ func (r *repository) GetAll(ctx context.Context) ([]News, error) {
 	return news, nil
 }
 
+func (r *repository) GetAllByPost(ctx context.Context, posted bool) ([]News, error) {
+	q := `
+		SELECT
+			id, title, link, content, source_id, posted, published, created
+		FROM news
+		WHERE posted = $1
+	`
+	r.logger.DebugSQL(q)
+
+	rows, err := r.client.Query(ctx, q, posted)
+	if err != nil {
+		return nil, err
+	}
+
+	news := make([]News, 0)
+
+	for rows.Next() {
+		var new News
+
+		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Posted, &new.Published, &new.Created)
+		if err != nil {
+			return nil, err
+		}
+
+		news = append(news, new)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return news, nil
+}
+
 func (r *repository) Get(ctx context.Context, id int) (News, error) {
 	q := `
 		SELECT

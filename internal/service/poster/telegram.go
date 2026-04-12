@@ -1,31 +1,45 @@
 package poster
 
 import (
+	"context"
 	"fmt"
+	"newtg/internal/news"
+	"newtg/pkg/logging"
+	"newtg/pkg/postgresql"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type TelegramPoster struct {
+	client postgresql.Client
+	logger *logging.Logger
+
 	bot    *tgbotapi.BotAPI
 	chatID int64
+
+	maxNewLength int
 }
 
-func NewTelegramPoster(token string, chatID int64) (*TelegramPoster, error) {
-	bot, err := tgbotapi.NewBotAPI(token)
+func (tp *TelegramPoster) CheckNews() {
+	news := news.NewRepository(tp.client, tp.logger)
+	newNews, err := news.GetAllByPost(context.TODO(), false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init bot: %w", err)
+		tp.logger.Error(err.Error())
+		return
 	}
 
-	return &TelegramPoster{
-		bot:    bot,
-		chatID: chatID,
-	}, nil
+	for _, new := range newNews {
+
+		text := tp.ChangeText(new.Content, new.Link)
+		err = tp.SendMessage(text)
+	}
+	fmt.Println(err.Error())
 }
 
 func (tp *TelegramPoster) SendMessage(text string) error {
 	msg := tgbotapi.NewMessage(tp.chatID, text)
-	msg.ParseMode = tgbotapi.ModeMarkdownV2
+	msg.ParseMode = tgbotapi.ModeHTML
+	msg.DisableWebPagePreview = true
 
 	_, err := tp.bot.Send(msg)
 	if err != nil {
@@ -33,4 +47,29 @@ func (tp *TelegramPoster) SendMessage(text string) error {
 	}
 
 	return nil
+}
+
+func NewTelegramPoster(
+	client postgresql.Client,
+	logger *logging.Logger,
+
+	token string,
+	chatID int64,
+
+	maxNewLength int,
+) (*TelegramPoster, error) {
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init bot: %w", err)
+	}
+
+	return &TelegramPoster{
+		client: client,
+		logger: logger,
+
+		bot:    bot,
+		chatID: chatID,
+
+		maxNewLength: maxNewLength,
+	}, nil
 }
