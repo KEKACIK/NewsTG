@@ -33,7 +33,7 @@ func (r *repository) Create(ctx context.Context, new *News) error {
 func (r *repository) GetAll(ctx context.Context) ([]News, error) {
 	q := `
 		SELECT
-			id, title, link, content, source_id, posted, published, created
+			id, title, link, content, source_id, status, published, created
 		FROM news
 	`
 	r.logger.DebugSQL(q)
@@ -48,7 +48,7 @@ func (r *repository) GetAll(ctx context.Context) ([]News, error) {
 	for rows.Next() {
 		var new News
 
-		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Posted, &new.Published, &new.Created)
+		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Status, &new.Published, &new.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -63,16 +63,16 @@ func (r *repository) GetAll(ctx context.Context) ([]News, error) {
 	return news, nil
 }
 
-func (r *repository) GetAllByPost(ctx context.Context, posted bool) ([]News, error) {
+func (r *repository) GetAllByStatus(ctx context.Context, status NewStatus) ([]News, error) {
 	q := `
 		SELECT
-			id, title, link, content, source_id, posted, published, created
+			id, title, link, content, source_id, status, published, created
 		FROM news
-		WHERE posted = $1
+		WHERE status = $1
 	`
 	r.logger.DebugSQL(q)
 
-	rows, err := r.client.Query(ctx, q, posted)
+	rows, err := r.client.Query(ctx, q, status)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (r *repository) GetAllByPost(ctx context.Context, posted bool) ([]News, err
 	for rows.Next() {
 		var new News
 
-		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Posted, &new.Published, &new.Created)
+		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Status, &new.Published, &new.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -100,14 +100,14 @@ func (r *repository) GetAllByPost(ctx context.Context, posted bool) ([]News, err
 func (r *repository) Get(ctx context.Context, id int) (News, error) {
 	q := `
 		SELECT
-			id, title, link, content, source_id, posted, published, created
+			id, title, link, content, source_id, status, published, created
 		FROM news
 		WHERE id = $1
 	`
 	r.logger.DebugSQL(q)
 
 	var new News
-	err := r.client.QueryRow(ctx, q, id).Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source, new.Posted, new.Published, new.Created)
+	err := r.client.QueryRow(ctx, q, id).Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source, new.Status, new.Published, new.Created)
 	if err != nil {
 		return News{}, err
 	}
@@ -116,8 +116,17 @@ func (r *repository) Get(ctx context.Context, id int) (News, error) {
 }
 
 // TODO
-func (r *repository) Update(ctx context.Context, new *News) error {
-	panic("unimplemented")
+func (r *repository) Update(ctx context.Context, new *News) (err error) {
+	q := `
+		UPDATE news SET
+			title=$1, link=$2, content=$3, source_id=$4, status=$5
+		WHERE id = $6
+	`
+	r.logger.DebugSQL(q)
+
+	_, err = r.client.Exec(ctx, q, new.Title, new.Link, new.Content, new.Source.ID, new.Status, new.ID)
+
+	return err
 }
 
 // TODO

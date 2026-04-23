@@ -20,20 +20,31 @@ type TelegramPoster struct {
 	maxNewLength int
 }
 
-func (tp *TelegramPoster) CheckNews() {
-	news := news.NewRepository(tp.client, tp.logger)
-	newNews, err := news.GetAllByPost(context.TODO(), false)
+func (tp *TelegramPoster) CheckNews(ctx context.Context) {
+	newsRepo := news.NewRepository(tp.client, tp.logger)
+	waitNews, err := newsRepo.GetAllByStatus(context.TODO(), news.WaitNewStatus)
 	if err != nil {
 		tp.logger.Error(err.Error())
 		return
 	}
 
-	for _, new := range newNews {
+	for _, wn := range waitNews {
+		tp.logger.Debug(fmt.Sprintf("Обработка news.%d начата...", wn.ID))
 
-		text := tp.ChangeText(new.Content, new.Link)
+		text := tp.ChangeText(wn.Content, wn.Link)
+
 		err = tp.SendMessage(text)
+		wn.Status = news.DoneNewStatus
+		if err != nil {
+			wn.Status = news.ErrorNewStatus
+			tp.logger.Warn(fmt.Sprintf("news.%d статус '%s'. Error: %s", wn.ID, wn.Status, err.Error()))
+		}
+
+		err = newsRepo.Update(ctx, &wn)
+		if err != nil {
+			tp.logger.Error(err.Error())
+		}
 	}
-	fmt.Println(err.Error())
 }
 
 func (tp *TelegramPoster) SendMessage(text string) error {

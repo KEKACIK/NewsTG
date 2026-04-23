@@ -12,9 +12,11 @@ import (
 func main() {
 	fmt.Println("HELLO POSTER")
 
+	ctx := context.TODO()
+
 	cfg := config.NewConfig()
 	logger := logging.NewLogger(cfg.Debug)
-	client, err := postgresql.NewClient(context.TODO(), 5, cfg.GetPostgresDsn())
+	client, err := postgresql.NewClient(ctx, 5, cfg.GetPostgresDsn())
 
 	telegramPoster, err := poster.NewTelegramPoster(
 		client,
@@ -29,7 +31,7 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
-	telegramPoster.CheckNews()
+	telegramPoster.CheckNews(ctx)
 	// for {
 	// 	now := time.Now()
 	// 	// next := now.Truncate(time.Hour).Add(time.Hour)
