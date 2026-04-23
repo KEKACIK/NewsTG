@@ -3,7 +3,6 @@ package poster
 import (
 	"context"
 	"fmt"
-	"newtg/internal/news"
 	"newtg/pkg/logging"
 	"newtg/pkg/postgresql"
 
@@ -21,30 +20,30 @@ type TelegramPoster struct {
 }
 
 func (tp *TelegramPoster) CheckNews(ctx context.Context) {
-	newsRepo := news.NewRepository(tp.client, tp.logger)
-	waitNews, err := newsRepo.GetAllByStatus(context.TODO(), news.WaitNewStatus)
-	if err != nil {
-		tp.logger.Error(err.Error())
-		return
-	}
+	// newsRepo := news.NewRepository(tp.client, tp.logger)
+	// waitNews, err := newsRepo.GetAllByStatus(context.TODO(), news.WaitNewStatus)
+	// if err != nil {
+	// 	tp.logger.Error(err.Error())
+	// 	return
+	// }
 
-	for _, wn := range waitNews {
-		tp.logger.Debug(fmt.Sprintf("Обработка news.%d начата...", wn.ID))
+	// for _, wn := range waitNews {
+	// 	tp.logger.Debug(fmt.Sprintf("Обработка news.%d начата...", wn.ID))
 
-		text := tp.ChangeText(wn.Content, wn.Link)
+	// 	text := tp.ChangeText(wn.Content, wn.Link)
 
-		err = tp.SendMessage(text)
-		wn.Status = news.DoneNewStatus
-		if err != nil {
-			wn.Status = news.ErrorNewStatus
-			tp.logger.Warn(fmt.Sprintf("news.%d статус '%s'. Error: %s", wn.ID, wn.Status, err.Error()))
-		}
+	// 	err = tp.SendMessage(text)
+	// 	wn.Status = news.DoneNewStatus
+	// 	if err != nil {
+	// 		wn.Status = news.ErrorNewStatus
+	// 		tp.logger.Warn(fmt.Sprintf("news.%d статус '%s'. Error: %s", wn.ID, wn.Status, err.Error()))
+	// 	}
 
-		err = newsRepo.Update(ctx, &wn)
-		if err != nil {
-			tp.logger.Error(err.Error())
-		}
-	}
+	// 	err = newsRepo.Update(ctx, &wn)
+	// 	if err != nil {
+	// 		tp.logger.Error(err.Error())
+	// 	}
+	// }
 }
 
 func (tp *TelegramPoster) SendMessage(text string) error {
