@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"newtg/internal/config"
+	"newtg/config"
 	"newtg/internal/service/poster"
 	"newtg/pkg/logging"
 	"newtg/pkg/postgresql"
