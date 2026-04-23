@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/lmittmann/tint"
+	"github.com/pressly/goose/v3"
 )
 
 type Logger struct {
@@ -27,6 +28,8 @@ func NewLogger(debug bool) *Logger {
 			TimeFormat: "15:04:05",
 		})),
 	}
+
+	goose.SetLogger(logger)
 
 	return logger
 }

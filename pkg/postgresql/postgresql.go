@@ -2,12 +2,15 @@ package postgresql
 
 import (
 	"context"
-	"log"
+	"newtg/pkg/logging"
 	"newtg/pkg/utils"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 )
 
 type Client interface {
@@ -17,12 +20,33 @@ type Client interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
-func NewClient(ctx context.Context, maxAttempts int, dsn string) (conn *pgx.Conn, err error) {
+func Migration(ctx context.Context, logger *logging.Logger, pool *pgxpool.Pool) error {
+	db := stdlib.OpenDBFromPool(pool)
+	defer db.Close()
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		logger.Fatal(err.Error())
+	}
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		logger.Fatal(err.Error())
+	}
+
+	return nil
+}
+
+func NewClient(
+	ctx context.Context,
+	logger *logging.Logger,
+	maxAttempts int,
+	dsn string,
+) (pool *pgxpool.Pool, err error) {
 	err = utils.DoWithTries(func() error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		conn, err = pgx.Connect(ctx, dsn)
+		logger.Debug("database trying to connect...")
+		pool, err = pgxpool.New(ctx, dsn)
 		if err != nil {
 			return err
 		}
@@ -31,8 +55,13 @@ func NewClient(ctx context.Context, maxAttempts int, dsn string) (conn *pgx.Conn
 	}, maxAttempts, 5*time.Second)
 
 	if err != nil {
-		log.Fatal("error do with tries postgresql")
+		logger.Fatal("error do with tries postgresql")
 	}
+	logger.Info("database connect OK")
+
+	logger.Debug("migrations...")
+	err = Migration(ctx, logger, pool)
+	logger.Info("migrations OK")
 
 	return
 }

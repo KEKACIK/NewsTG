@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS source (
     id      SERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL,
@@ -5,7 +6,6 @@ CREATE TABLE IF NOT EXISTS source (
 );
 
 INSERT INTO source(name) VALUES ('РИА Новости');
-
 
 CREATE TABLE IF NOT EXISTS news (
     id              SERIAL PRIMARY KEY,
@@ -21,3 +21,7 @@ CREATE TABLE IF NOT EXISTS news (
 
     CONSTRAINT source_fk FOREIGN KEY (source_id) REFERENCES source(id)
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS news;
+DROP TABLE IF EXISTS source;
