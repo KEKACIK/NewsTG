@@ -19,6 +19,7 @@ type News struct {
 	Link    string        `json:"link"`
 	Content string        `json:"content"`
 	Source  source.Source `json:"source"`
+	Likes   int           `json:"likes"`
 	Status  NewStatus     `json:"status"`
 
 	Published time.Time `json:"published"`

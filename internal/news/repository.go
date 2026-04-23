@@ -4,7 +4,6 @@ import (
 	"context"
 	"newtg/pkg/logging"
 	"newtg/pkg/postgresql"
-	"time"
 )
 
 type repository struct {
@@ -12,17 +11,16 @@ type repository struct {
 	logger *logging.Logger
 }
 
-func (r *repository) Create(ctx context.Context, new *News) error {
+func (r *repository) Create(ctx context.Context, dto *CreateNewsDTO) error {
 	q := `
 		INSERT INTO news
-			(title, link, content, source_id, published)
+			(title, link, content, source_id, likes, published_at)
 		VALUES
-			($1, $2, $3, $4, $5)
-		RETURNING id, created
+			($1, $2, $3, $4, $5, $6)
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, dto.Title, dto.Link, dto.Content, dto.SourceID, dto.Likes, dto.Published)
 
-	err := r.client.QueryRow(ctx, q, new.Title, new.Link, new.Content, new.Source.ID, time.Now()).Scan(&new.ID, &new.Created)
+	_, err := r.client.Exec(ctx, q, dto.Title, dto.Link, dto.Content, dto.SourceID, dto.Likes, dto.Published)
 	if err != nil {
 		return err
 	}
@@ -33,7 +31,7 @@ func (r *repository) Create(ctx context.Context, new *News) error {
 func (r *repository) GetAll(ctx context.Context) ([]News, error) {
 	q := `
 		SELECT
-			id, title, link, content, source_id, status, published, created
+			id, title, link, content, source_id, likes, status, published_at, created_at
 		FROM news
 	`
 	r.logger.DebugSQL(q)
@@ -48,7 +46,7 @@ func (r *repository) GetAll(ctx context.Context) ([]News, error) {
 	for rows.Next() {
 		var new News
 
-		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Status, &new.Published, &new.Created)
+		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Likes, &new.Status, &new.Published, &new.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +68,7 @@ func (r *repository) GetAllByStatus(ctx context.Context, status NewStatus) ([]Ne
 		FROM news
 		WHERE status = $1
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, status)
 
 	rows, err := r.client.Query(ctx, q, status)
 	if err != nil {
@@ -104,7 +102,7 @@ func (r *repository) Get(ctx context.Context, id int) (News, error) {
 		FROM news
 		WHERE id = $1
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, id)
 
 	var new News
 	err := r.client.QueryRow(ctx, q, id).Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source, new.Status, new.Published, new.Created)
@@ -122,7 +120,7 @@ func (r *repository) Update(ctx context.Context, new *News) (err error) {
 			title=$1, link=$2, content=$3, source_id=$4, status=$5
 		WHERE id = $6
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, new.Title, new.Link, new.Content, new.Source.ID, new.Status, new.ID)
 
 	_, err = r.client.Exec(ctx, q, new.Title, new.Link, new.Content, new.Source.ID, new.Status, new.ID)
 

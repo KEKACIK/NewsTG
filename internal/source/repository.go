@@ -17,11 +17,10 @@ func (r *repository) Create(ctx context.Context, source *Source) error {
 			(name)
 		VALUES
 			($1)
-		RETURNING id
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, source.Name)
 
-	err := r.client.QueryRow(ctx, q, source.Name).Scan(&source.ID)
+	_, err := r.client.Exec(ctx, q, source.Name)
 	if err != nil {
 		return err
 	}
@@ -69,7 +68,7 @@ func (r *repository) Get(ctx context.Context, id int) (Source, error) {
 		FROM source WHERE
 			id = $1
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, id)
 
 	var source Source
 	err := r.client.QueryRow(ctx, q, id).Scan(&source.ID, &source.Name)
@@ -87,7 +86,7 @@ func (r *repository) GetByName(ctx context.Context, name string) (Source, error)
 		FROM source WHERE
 			name = $1
 	`
-	r.logger.DebugSQL(q)
+	r.logger.DebugSQL(q, name)
 
 	var source Source
 	err := r.client.QueryRow(ctx, q, name).Scan(&source.ID, &source.Name)
