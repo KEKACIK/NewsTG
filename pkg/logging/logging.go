@@ -3,23 +3,12 @@ package logging
 import (
 	"log/slog"
 	"os"
-	"strings"
+
+	"github.com/lmittmann/tint"
 )
 
 type Logger struct {
 	*slog.Logger
-}
-
-func NewLogger(debug bool) *Logger {
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}
-	if debug {
-		opts.Level = slog.LevelDebug
-	}
-	return &Logger{
-		slog.New(slog.NewTextHandler(os.Stdout, opts)),
-	}
 }
 
 func (l *Logger) Fatal(msg string) {
@@ -27,10 +16,17 @@ func (l *Logger) Fatal(msg string) {
 	panic(msg)
 }
 
-func (l *Logger) DebugSQL(q string) {
-	q = strings.ReplaceAll(q, "\t", " ")
-	q = strings.ReplaceAll(q, "\n", "")
-	q = strings.TrimSpace(q)
+func NewLogger(debug bool) *Logger {
+	level := slog.LevelInfo
+	if debug {
+		level = slog.LevelDebug
+	}
+	logger := &Logger{
+		slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+			Level:      level,
+			TimeFormat: "15:04:05",
+		})),
+	}
 
-	l.Debug(q)
+	return logger
 }
