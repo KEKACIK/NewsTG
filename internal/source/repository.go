@@ -28,6 +28,7 @@ func (r *repository) Create(ctx context.Context, source *Source) error {
 
 	return nil
 }
+
 func (r *repository) GetAll(ctx context.Context) ([]Source, error) {
 	q := `
 		SELECT
@@ -65,13 +66,31 @@ func (r *repository) Get(ctx context.Context, id int) (Source, error) {
 	q := `
 		SELECT
 			id, name
-		FROM source
-		WHERE id = $1
+		FROM source WHERE
+			id = $1
 	`
 	r.logger.DebugSQL(q)
 
 	var source Source
 	err := r.client.QueryRow(ctx, q, id).Scan(&source.ID, &source.Name)
+	if err != nil {
+		return Source{}, err
+	}
+
+	return source, nil
+}
+
+func (r *repository) GetByName(ctx context.Context, name string) (Source, error) {
+	q := `
+		SELECT
+			id, name
+		FROM source WHERE
+			name = $1
+	`
+	r.logger.DebugSQL(q)
+
+	var source Source
+	err := r.client.QueryRow(ctx, q, name).Scan(&source.ID, &source.Name)
 	if err != nil {
 		return Source{}, err
 	}
