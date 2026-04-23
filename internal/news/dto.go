@@ -2,11 +2,18 @@ package news
 
 import "time"
 
-type CreateNewsDTO struct {
-	Title     string    `json:"title"`
-	Link      string    `json:"link"`
-	Content   string    `json:"content"`
-	SourceID  int       `json:"source_id"`
-	Likes     int       `json:"likes"`
-	Published time.Time `json:"published"`
+type CreateDTO struct {
+	Title     string
+	Link      string
+	Content   string
+	SourceID  int
+	Likes     int
+	Published time.Time
+}
+
+type GetAllDTO struct {
+	Status   string
+	FromDate time.Time
+	ToDate   time.Time
+	Limit    int
 }

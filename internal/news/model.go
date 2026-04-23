@@ -8,9 +8,9 @@ import (
 type NewStatus string
 
 const (
-	WaitNewStatus  NewStatus = "wait"
-	DoneNewStatus  NewStatus = "done"
-	ErrorNewStatus NewStatus = "error"
+	WaitStatus  NewStatus = "wait"
+	DoneStatus  NewStatus = "done"
+	ErrorStatus NewStatus = "error"
 )
 
 type News struct {
