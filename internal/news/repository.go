@@ -34,8 +34,9 @@ func (r *repository) Create(ctx context.Context, dto *CreateDTO) error {
 }
 
 func (r *repository) GetAll(ctx context.Context, dto *GetAllDTO) ([]News, error) {
-	where_list := make([]string, 0)
 	args := make([]any, 0)
+	where_list := make([]string, 0)
+
 	{
 		zeroTime := time.Time{}
 

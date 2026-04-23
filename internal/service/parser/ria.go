@@ -76,7 +76,7 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	newsRepo := news.NewRepository(rc.client, rc.logger)
 
 	for _, post := range posts {
-		err = newsRepo.Create(context.Background(), &news.CreateNewsDTO{
+		err = newsRepo.Create(context.Background(), &news.CreateDTO{
 			Title:     post.Title,
 			Link:      post.Link,
 			Content:   post.Content,
@@ -149,15 +149,19 @@ func (rc *RiaClient) GetPost(hClient *http.Client, postUrl string) (*Post, error
 
 	post := &Post{}
 
-	post.Title = doc.Find("div.article__title").First().Text()
+	post.Title = doc.Find(".article__title").First().Text()
 
 	post.Link = postUrl
-
-	contentList := make([]string, 0)
-	doc.Find(".article__summary-list li").Each(func(i int, s *goquery.Selection) {
-		contentList = append(contentList, s.Text())
-	})
-	post.Content = strings.Join(contentList, "\n\n")
+	{
+		contentList := make([]string, 0)
+		doc.Find(".article__summary-list li").Each(func(i int, s *goquery.Selection) {
+			contentList = append(contentList, s.Text())
+		})
+		if len(contentList) < 1 {
+			contentList = append(contentList, doc.Find(".article__text").First().Text())
+		}
+		post.Content = strings.Join(contentList, "\n\n")
+	}
 
 	{
 		dynamicUrl, err := rc.getDynamicLink(postUrl)
@@ -187,11 +191,7 @@ func (rc *RiaClient) GetPost(hClient *http.Client, postUrl string) (*Post, error
 				return nil, err
 			}
 
-			if i <= 3 {
-				post.LikeSum += count
-			} else {
-				post.LikeSum -= count
-			}
+			post.LikeSum += count
 		}
 	}
 
