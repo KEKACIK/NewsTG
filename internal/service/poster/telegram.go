@@ -48,7 +48,7 @@ func (tp *TelegramPoster) CheckRiaNews(ctx context.Context, source_id int, limit
 
 	waitNews, err := newsRepo.GetAll(context.Background(), &news.GetAllDTO{
 		Status:   string(news.WaitStatus),
-		FromDate: time.Now().Add(-time.Hour),
+		FromDate: time.Now().Add(-(2 * time.Hour)),
 		Limit:    limit,
 	})
 	if err != nil {
