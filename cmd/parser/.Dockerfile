@@ -10,6 +10,7 @@ RUN go build -o /app/bin ./cmd/parser/main.go
 FROM alpine:latest
 WORKDIR /root/
 COPY --from=builder /app/bin .
-COPY .env .
+COPY --from=builder /app/.env .
+COPY --from=builder /app/migrations ./migrations
 
 CMD ["./bin"]

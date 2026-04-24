@@ -34,8 +34,8 @@ func (tp *TelegramPoster) StartPool(ctx context.Context) error {
 	}
 
 	c := cron.New()
-	c.AddFunc("16 * * * *", func() {
-		tp.CheckRiaNews(context.Background(), riaSource.ID, tp.riaLimitPerHour)
+	c.AddFunc("00 * * * *", func() {
+		go tp.CheckRiaNews(context.Background(), riaSource.ID, tp.riaLimitPerHour)
 	})
 	c.Start()
 
@@ -70,6 +70,7 @@ func (tp *TelegramPoster) CheckRiaNews(ctx context.Context, source_id int, limit
 		if err != nil {
 			tp.logger.Warn(err.Error())
 		}
+		time.Sleep(5 * time.Second)
 	}
 }
 

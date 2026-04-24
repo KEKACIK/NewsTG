@@ -6,6 +6,8 @@ import (
 	"newtg/internal/service/parser"
 	"newtg/pkg/logging"
 	"newtg/pkg/postgresql"
+
+	"github.com/robfig/cron/v3"
 )
 
 func main() {
@@ -18,5 +20,12 @@ func main() {
 	}
 
 	rc := parser.NewRiaClient(client, logger, "РИА Новости", cfg.MaxNewsPerHourRia)
-	rc.PoolNews(context.Background())
+	c := cron.New()
+	c.AddFunc("*/15 * * * *", func() {
+		rc.PoolNews(context.Background())
+	})
+	c.Start()
+
+	logger.Info("Parser start pooling..")
+	select {}
 }

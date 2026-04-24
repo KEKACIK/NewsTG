@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:17-alpine
+    restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_NAME}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -12,6 +13,7 @@ services:
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   parser:
+    restart: always
     build:
       context: .
       dockerfile: cmd/parser/.Dockerfile
@@ -21,6 +23,7 @@ services:
       - db
 
   poster:
+    restart: always
     build:
       context: .
       dockerfile: cmd/poster/.Dockerfile
