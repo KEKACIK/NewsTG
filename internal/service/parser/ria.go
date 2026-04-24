@@ -3,7 +3,6 @@ package parser
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"newtg/internal/news"
 	"newtg/internal/source"
@@ -22,6 +21,7 @@ type RiaClient struct {
 	logger *logging.Logger
 
 	sourceName string
+	tags       []string
 	url        string
 	dynamicUrl string
 
@@ -30,7 +30,7 @@ type RiaClient struct {
 	maxNewsPerHour int
 }
 
-type Post struct {
+type RiaPost struct {
 	Title       string
 	Link        string
 	Content     string
@@ -49,8 +49,13 @@ func NewRiaClient(
 		client: client,
 		logger: logger,
 
-		sourceName:     sourceName,
-		url:            "https://ria.ru/services/tagsearch/?date_start=%s&date=%s&tags[]=world&view=tags",
+		sourceName: sourceName,
+		tags: []string{
+			"world", "incidents", "economy", "society",
+			"politics", "culture", "tourism", "science",
+			"defense_safety", "religion", "sport",
+		},
+		url:            "https://ria.ru/services/tagsearch/?date_start=%s&date=%s&tags[]=world&view=%s",
 		dynamicUrl:     "https://ria.ru/services/dynamics/%s/%s.html",
 		dataFormat:     "20060102",
 		timeFormat:     "15:04 02.01.2006",
@@ -62,9 +67,14 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	dataFrom := time.Now().AddDate(0, 0, -1)
 	dataTo := time.Now()
 
-	posts, err := rc.GetAllPosts(dataFrom, dataTo)
-	if err != nil {
-		log.Fatal("Ошибка чтения HTML:", err)
+	allPosts := make([]*RiaPost, 0)
+	for _, tag := range rc.tags {
+		posts, err := rc.GetAllPosts(dataFrom, dataTo, tag)
+		if err != nil {
+			rc.logger.Warn("Ошибка чтения HTML:", err)
+			continue
+		}
+		allPosts = append(allPosts, posts...)
 	}
 
 	sourceRepo := source.NewRepository(rc.client, rc.logger)
@@ -75,7 +85,7 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 
 	newsRepo := news.NewRepository(rc.client, rc.logger)
 
-	for _, post := range posts {
+	for _, post := range allPosts {
 		err = newsRepo.Create(context.Background(), &news.CreateDTO{
 			Title:     post.Title,
 			Link:      post.Link,
@@ -90,10 +100,10 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	}
 }
 
-func (rc *RiaClient) GetAllPosts(dataFrom, dataTo time.Time) ([]*Post, error) {
+func (rc *RiaClient) GetAllPosts(dataFrom, dataTo time.Time, tag string) ([]*RiaPost, error) {
 	hClient := &http.Client{Timeout: 10 * time.Second}
 
-	url := fmt.Sprintf(rc.url, dataFrom.Format(rc.dataFormat), dataTo.Format(rc.dataFormat))
+	url := fmt.Sprintf(rc.url, dataFrom.Format(rc.dataFormat), dataTo.Format(rc.dataFormat), tag)
 	res, err := hClient.Get(url)
 	if err != nil {
 		return nil, err
@@ -110,7 +120,7 @@ func (rc *RiaClient) GetAllPosts(dataFrom, dataTo time.Time) ([]*Post, error) {
 		return nil, err
 	}
 
-	posts := make([]*Post, 0)
+	posts := make([]*RiaPost, 0)
 
 	doc.Find(".list-item").Each(func(i int, s *goquery.Selection) {
 		link, exists := s.Find("a.list-item__title.color-font-hover-only").Attr("href")
@@ -131,7 +141,7 @@ func (rc *RiaClient) GetAllPosts(dataFrom, dataTo time.Time) ([]*Post, error) {
 	return posts, nil
 }
 
-func (rc *RiaClient) GetPost(hClient *http.Client, postUrl string) (*Post, error) {
+func (rc *RiaClient) GetPost(hClient *http.Client, postUrl string) (*RiaPost, error) {
 	res, err := hClient.Get(postUrl)
 	if err != nil {
 		return nil, err
@@ -147,7 +157,7 @@ func (rc *RiaClient) GetPost(hClient *http.Client, postUrl string) (*Post, error
 		return nil, err
 	}
 
-	post := &Post{}
+	post := &RiaPost{}
 
 	post.Title = doc.Find(".article__title").First().Text()
 
