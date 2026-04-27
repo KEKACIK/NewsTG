@@ -60,7 +60,12 @@ func NewClient(
 	logger.Info("database connect OK")
 
 	logger.Debug("migrations...")
+	time.Sleep(2 * time.Second)
+
 	err = Migration(ctx, logger, pool)
+	if err != nil {
+		return nil, err
+	}
 	logger.Info("migrations OK")
 
 	return

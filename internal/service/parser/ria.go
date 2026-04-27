@@ -55,7 +55,7 @@ func NewRiaClient(
 			"politics", "culture", "tourism", "science",
 			"defense_safety", "religion", "sport",
 		},
-		url:            "https://ria.ru/services/tagsearch/?date_start=%s&date=%s&tags[]=world&view=%s",
+		url:            "https://ria.ru/services/tagsearch/?date_start=%s&date=%s&tags[]=%s",
 		dynamicUrl:     "https://ria.ru/services/dynamics/%s/%s.html",
 		dataFormat:     "20060102",
 		timeFormat:     "15:04 02.01.2006",
@@ -68,10 +68,11 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	dataTo := time.Now()
 
 	allPosts := make([]*RiaPost, 0)
+	linksCheck := map[string]struct{}{}
 	for _, tag := range rc.tags {
-		posts, err := rc.GetAllPosts(dataFrom, dataTo, tag)
+		posts, err := rc.GetAllPosts(linksCheck, dataFrom, dataTo, tag)
 		if err != nil {
-			rc.logger.Warn("Ошибка чтения HTML:", err)
+			rc.logger.Warn(fmt.Sprintf("Ошибка чтения HTML:", err))
 			continue
 		}
 		allPosts = append(allPosts, posts...)
@@ -100,7 +101,7 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	}
 }
 
-func (rc *RiaClient) GetAllPosts(dataFrom, dataTo time.Time, tag string) ([]*RiaPost, error) {
+func (rc *RiaClient) GetAllPosts(linkCheck map[string]struct{}, dataFrom, dataTo time.Time, tag string) ([]*RiaPost, error) {
 	hClient := &http.Client{Timeout: 10 * time.Second}
 
 	url := fmt.Sprintf(rc.url, dataFrom.Format(rc.dataFormat), dataTo.Format(rc.dataFormat), tag)
@@ -129,12 +130,17 @@ func (rc *RiaClient) GetAllPosts(dataFrom, dataTo time.Time, tag string) ([]*Ria
 			return
 		}
 
+		if _, exists := linkCheck[link]; exists {
+			return
+		}
+
 		post, err := rc.GetPost(hClient, link)
 		if err != nil {
 			rc.logger.Warn(err.Error())
 			return
 		}
 
+		linkCheck[link] = struct{}{}
 		posts = append(posts, post)
 	})
 
