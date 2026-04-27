@@ -72,7 +72,7 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	for _, tag := range rc.tags {
 		posts, err := rc.GetAllPosts(linksCheck, dataFrom, dataTo, tag)
 		if err != nil {
-			rc.logger.Warn(fmt.Sprintf("Ошибка чтения HTML:", err))
+			rc.logger.Warn(fmt.Sprintf("Ошибка чтения HTML: %s", err))
 			continue
 		}
 		allPosts = append(allPosts, posts...)
