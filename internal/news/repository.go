@@ -35,25 +35,30 @@ func (r *repository) Create(ctx context.Context, dto *CreateDTO) error {
 
 func (r *repository) GetAll(ctx context.Context, dto *GetAllDTO) ([]News, error) {
 	args := make([]any, 0)
-	where_list := make([]string, 0)
+	whereList := make([]string, 0)
 
 	{
 		zeroTime := time.Time{}
 
 		if dto.Status != "" {
 			args = append(args, dto.Status)
-			where_list = append(where_list, fmt.Sprintf("status=$%d", len(args)))
+			whereList = append(whereList, fmt.Sprintf("status=$%d", len(args)))
 		}
 
 		if dto.FromDate != zeroTime {
 			args = append(args, dto.FromDate)
-			where_list = append(where_list, fmt.Sprintf("published_at >= $%d", len(args)))
+			whereList = append(whereList, fmt.Sprintf("published_at >= $%d", len(args)))
 		}
 
 		if dto.ToDate != zeroTime {
 			args = append(args, dto.ToDate)
-			where_list = append(where_list, fmt.Sprintf("published_at < $%d", len(args)))
+			whereList = append(whereList, fmt.Sprintf("published_at < $%d", len(args)))
 		}
+	}
+
+	whereString := ""
+	if len(whereList) > 0 {
+		whereString = fmt.Sprintf("WHERE %s", strings.Join(whereList, " AND "))
 	}
 
 	if dto.Limit == 0 {
@@ -64,7 +69,7 @@ func (r *repository) GetAll(ctx context.Context, dto *GetAllDTO) ([]News, error)
 	q := fmt.Sprintf(
 		`SELECT %s FROM news %s ORDER BY likes DESC LIMIT $%d`,
 		"id, title, link, content, source_id, likes, status, published_at, created_at",
-		fmt.Sprintf("WHERE %s", strings.Join(where_list, " AND ")),
+		whereString,
 		len(args),
 	)
 	r.logger.DebugSQL(q, args...)
@@ -76,14 +81,18 @@ func (r *repository) GetAll(ctx context.Context, dto *GetAllDTO) ([]News, error)
 
 	news := make([]News, 0)
 	for rows.Next() {
-		var new News
+		var newItem News
 
-		err = rows.Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source.ID, &new.Likes, &new.Status, &new.Published, &new.Created)
+		err = rows.Scan(
+			&newItem.ID, &newItem.Title, &newItem.Link, &newItem.Content,
+			&newItem.Source.ID, &newItem.Likes, &newItem.Status,
+			&newItem.Published, &newItem.Created,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		news = append(news, new)
+		news = append(news, newItem)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -96,19 +105,25 @@ func (r *repository) GetAll(ctx context.Context, dto *GetAllDTO) ([]News, error)
 func (r *repository) Get(ctx context.Context, id int) (News, error) {
 	q := `
 		SELECT
-			id, title, link, content, source_id, status, published, created
+			id, title, link, content,
+			source_id, likes, status,
+			published, created
 		FROM news
 		WHERE id = $1
 	`
 	r.logger.DebugSQL(q, id)
 
-	var new News
-	err := r.client.QueryRow(ctx, q, id).Scan(&new.ID, &new.Title, &new.Link, &new.Content, &new.Source, new.Status, new.Published, new.Created)
+	var newItem News
+	err := r.client.QueryRow(ctx, q, id).Scan(
+		&newItem.ID, &newItem.Title, &newItem.Link, &newItem.Content,
+		&newItem.Source.ID, &newItem.Likes, &newItem.Status,
+		&newItem.Published, &newItem.Created,
+	)
 	if err != nil {
 		return News{}, err
 	}
 
-	return new, nil
+	return newItem, nil
 }
 
 // TODO
@@ -127,7 +142,7 @@ func (r *repository) Update(ctx context.Context, new *News) (err error) {
 
 // TODO
 func (r *repository) Delete(ctx context.Context, id int) error {
-	panic("unimplemented")
+	return fmt.Errorf("delete not implemented")
 }
 
 func NewRepository(client postgresql.Client, logger *logging.Logger) Repository {

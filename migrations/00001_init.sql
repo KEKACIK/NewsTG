@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS news (
     title           TEXT NOT NULL,
     link            TEXT UNIQUE NOT NULL,
     content         TEXT,
-    source_id       SERIAL NOT NULL,
+    source_id       INTEGER NOT NULL,
     status          VARCHAR(64) DEFAULT 'wait',
     likes           INTEGER DEFAULT 0,
 

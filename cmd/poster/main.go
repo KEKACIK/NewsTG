@@ -23,6 +23,7 @@ func main() {
 		// TELEGRAM
 		cfg.TelegramBotToken,
 		cfg.TelegramChatID,
+		cfg.TelegramMaxMsgLength,
 		// RIA NEWS
 		"РИА Новости",
 		cfg.MaxNewsPerHourRia,

@@ -13,9 +13,9 @@ type Config struct {
 
 	MaxNewsPerHourRia int
 
-	TelegramBotToken string
-	TelegramChatID   int64
-	MaxNewsLength    int
+	TelegramBotToken     string
+	TelegramChatID       int64
+	TelegramMaxMsgLength int
 }
 
 func NewConfig() *Config {
@@ -32,9 +32,9 @@ func NewConfig() *Config {
 		// Parser
 		MaxNewsPerHourRia: getIntEnv("MAX_NEWS_PER_HOUR_RIA", 1),
 		// Poster
-		TelegramBotToken: getStrEnv("TELEGRAM_BOT_TOKEN", ""),
-		TelegramChatID:   getInt64Env("TELEGRAM_CHAT_ID", 0),
-		MaxNewsLength:    getIntEnv("MAX_NEWS_LENGTH", 0),
+		TelegramBotToken:     getStrEnv("TELEGRAM_BOT_TOKEN", ""),
+		TelegramChatID:       getInt64Env("TELEGRAM_CHAT_ID", 0),
+		TelegramMaxMsgLength: getIntEnv("TELEGRAM_MAX_MSG_LENGTH", 4096),
 	}
 }
 

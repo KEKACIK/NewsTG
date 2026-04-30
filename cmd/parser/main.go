@@ -19,12 +19,15 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
-	rc := parser.NewRiaClient(client, logger, "РИА Новости", cfg.MaxNewsPerHourRia)
+	riaClient := parser.NewRiaClient(client, logger, "РИА Новости", cfg.MaxNewsPerHourRia)
+	parsers := []parser.Parser{riaClient}
 
 	c := cron.New()
 	c.AddFunc("*/15 * * * *", func() {
 		logger.Info("Start parsing")
-		go rc.PoolNews(context.Background())
+		for _, p := range parsers {
+			go p.PoolNews(context.Background())
+		}
 	})
 	c.Start()
 

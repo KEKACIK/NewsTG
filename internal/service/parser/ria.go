@@ -44,7 +44,7 @@ func NewRiaClient(
 
 	sourceName string,
 	maxNewsPerHour int,
-) *RiaClient {
+) Parser {
 	return &RiaClient{
 		client: client,
 		logger: logger,
@@ -204,7 +204,8 @@ func (rc *RiaClient) GetPost(hClient *http.Client, postUrl string) (*RiaPost, er
 			countStr := dynamicDoc.Find(fmt.Sprintf(".emoji-item.m-type-s%d .m-value", i)).First().Text()
 			count, err := strconv.Atoi(countStr)
 			if err != nil {
-				return nil, err
+				rc.logger.Warn(err.Error())
+				count = 0
 			}
 
 			post.LikeSum += count
