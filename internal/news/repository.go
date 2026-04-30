@@ -107,7 +107,7 @@ func (r *repository) Get(ctx context.Context, id int) (News, error) {
 		SELECT
 			id, title, link, content,
 			source_id, likes, status,
-			published, created
+			published_at, created_at
 		FROM news
 		WHERE id = $1
 	`
