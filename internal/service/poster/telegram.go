@@ -101,7 +101,7 @@ func (tp *TelegramPoster) CheckRiaNews(ctx context.Context, source_id int, limit
 		title := newItem.Title
 		runesTitle := []rune(newItem.Title)
 		if len(runesTitle) > 100 {
-			title = string(runesTitle[:100]) + "..."
+			title = string(runesTitle[:100])
 		}
 
 		content := newItem.Content

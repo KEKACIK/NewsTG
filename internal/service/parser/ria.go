@@ -79,7 +79,7 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	}
 
 	sourceRepo := source.NewRepository(rc.client, rc.logger)
-	rSource, err := sourceRepo.GetByName(context.Background(), rc.sourceName)
+	rSource, err := sourceRepo.GetByName(ctx, rc.sourceName)
 	if err != nil {
 		rc.logger.Fatal(err.Error())
 	}
@@ -87,7 +87,7 @@ func (rc *RiaClient) PoolNews(ctx context.Context) {
 	newsRepo := news.NewRepository(rc.client, rc.logger)
 
 	for _, post := range allPosts {
-		err = newsRepo.Create(context.Background(), &news.CreateDTO{
+		err = newsRepo.Create(ctx, &news.CreateDTO{
 			Title:     post.Title,
 			Link:      post.Link,
 			Content:   post.Content,
@@ -126,7 +126,7 @@ func (rc *RiaClient) GetAllPosts(linkCheck map[string]struct{}, dataFrom, dataTo
 	doc.Find(".list-item").Each(func(i int, s *goquery.Selection) {
 		link, exists := s.Find("a.list-item__title.color-font-hover-only").Attr("href")
 		if !exists {
-			rc.logger.Warn(err.Error())
+			rc.logger.Warn("link not found in list-item")
 			return
 		}
 

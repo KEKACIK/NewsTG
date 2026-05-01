@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"errors"
 	"newtg/pkg/logging"
 	"newtg/pkg/postgresql"
 )
@@ -99,12 +100,12 @@ func (r *repository) GetByName(ctx context.Context, name string) (Source, error)
 
 // TODO
 func (r *repository) Update(ctx context.Context, source *Source) error {
-	panic("unimplemented")
+	return errors.New("not implemented")
 }
 
 // TODO
 func (r *repository) Delete(ctx context.Context, id int) error {
-	panic("unimplemented")
+	return errors.New("not implemented")
 }
 
 func NewRepository(client postgresql.Client, logger *logging.Logger) Repository {
