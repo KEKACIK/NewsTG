@@ -38,18 +38,20 @@ func (r *repository) GetAll(ctx context.Context, dto *GetAllDTO) ([]News, error)
 	whereList := make([]string, 0)
 
 	{
-		zeroTime := time.Time{}
-
+		if dto.SourceID != 0 {
+			args = append(args, dto.SourceID)
+			whereList = append(whereList, fmt.Sprintf("source_id=$%d", len(args)))
+		}
 		if dto.Status != "" {
 			args = append(args, dto.Status)
 			whereList = append(whereList, fmt.Sprintf("status=$%d", len(args)))
 		}
 
+		zeroTime := time.Time{}
 		if dto.FromDate != zeroTime {
 			args = append(args, dto.FromDate)
 			whereList = append(whereList, fmt.Sprintf("published_at >= $%d", len(args)))
 		}
-
 		if dto.ToDate != zeroTime {
 			args = append(args, dto.ToDate)
 			whereList = append(whereList, fmt.Sprintf("published_at < $%d", len(args)))

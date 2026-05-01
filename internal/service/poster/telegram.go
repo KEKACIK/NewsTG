@@ -2,6 +2,7 @@ package poster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"newtg/internal/news"
 	"newtg/internal/source"
@@ -9,6 +10,7 @@ import (
 	"newtg/pkg/postgresql"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/robfig/cron/v3"
 	"gopkg.in/telebot.v4"
@@ -76,7 +78,8 @@ func (tp *TelegramPoster) StartPool(ctx context.Context) error {
 func (tp *TelegramPoster) CheckRiaNews(ctx context.Context, source_id int, limit int) {
 	newsRepo := news.NewRepository(tp.client, tp.logger)
 
-	waitNews, err := newsRepo.GetAll(context.Background(), &news.GetAllDTO{
+	waitNews, err := newsRepo.GetAll(ctx, &news.GetAllDTO{
+		SourceID: source_id,
 		Status:   string(news.WaitStatus),
 		FromDate: time.Now().Add(-(2 * time.Hour)),
 		Limit:    limit,
@@ -85,49 +88,72 @@ func (tp *TelegramPoster) CheckRiaNews(ctx context.Context, source_id int, limit
 		tp.logger.Error(err.Error())
 		return
 	}
+	if len(waitNews) == 0 {
+		tp.logger.Info("No news to send")
+		return
+	}
 
-	for _, wn := range waitNews {
-		tp.logger.Debug(fmt.Sprintf("Отправка news.%d...", wn.ID))
-		wn.Status = news.DoneStatus
+	NewsToSend := make([]news.News, 0)
+	TextToSend := make([]string, 0)
+	for _, newItem := range waitNews {
+		tp.logger.Debug(fmt.Sprintf("Загружаю news.%d...", newItem.ID))
 
-		err = tp.BotSendPost(ctx, tp.riaSourceName, &wn)
-		if err != nil {
-			wn.Status = news.ErrorStatus
-			tp.logger.Warn(fmt.Sprintf("news.%d статус '%s'. Error: %s", wn.ID, wn.Status, err.Error()))
+		title := newItem.Title
+		runesTitle := []rune(newItem.Title)
+		if len(runesTitle) > 100 {
+			title = string(runesTitle[:100]) + "..."
 		}
 
-		err = newsRepo.Update(ctx, &wn)
+		content := newItem.Content
+		runesContent := []rune(content)
+		if len(runesContent) > 1100 {
+			truncated := string(runesContent[:1100])
+			lastDot := strings.LastIndex(truncated, ".")
+			if lastDot > 0 {
+				content = truncated[:lastDot+1]
+			}
+		}
+
+		TextToSend = append(TextToSend, strings.Join([]string{
+			fmt.Sprintf("<b>%s</b>", title),
+			"",
+			fmt.Sprintf("<blockquote>%s</blockquote>", content),
+			"",
+			fmt.Sprintf("<a href='%s'>%s</a>", newItem.Link, tp.riaSourceName),
+		}, "\n"))
+		NewsToSend = append(NewsToSend, newItem)
+	}
+
+	text := strings.Join(TextToSend, "\n━━━━━━━━━━━\n")
+
+	err = tp.BotSendPost(ctx, text)
+	if err != nil {
+		tp.logger.Warn(err.Error())
+		return
+	}
+
+	for _, newItem := range NewsToSend {
+		newItem.Status = news.DoneStatus
+		err = newsRepo.Update(ctx, &newItem)
 		if err != nil {
 			tp.logger.Warn(err.Error())
 		}
-		time.Sleep(5 * time.Second)
 	}
 }
 
-func (tp *TelegramPoster) BotSendPost(ctx context.Context, linkName string, new *news.News) error {
-	recipient := telebot.Chat{ID: tp.chatID}
-
-	content := new.Content
-	if len(content) > tp.telegramMaxMsgLength {
-		content = content[:tp.telegramMaxMsgLength] + "…"
-	}
-
-	text := strings.Join([]string{
-		fmt.Sprintf("<b>%s</b>", new.Title),
-		"",
-		fmt.Sprintf("<blockquote>%s</blockquote>", content),
-		"",
-		fmt.Sprintf("<a href='%s'>%s</a>", new.Link, linkName),
-	}, "\n")
-	options := telebot.SendOptions{
-		ParseMode:             telebot.ModeHTML,
-		DisableWebPagePreview: true,
+func (tp *TelegramPoster) BotSendPost(ctx context.Context, text string) error {
+	text = "🤖 <b>Новости часа</b>\n\n" + text
+	if utf8.RuneCountInString(text) > tp.telegramMaxMsgLength {
+		return errors.New("Post too long, skipping")
 	}
 
 	_, err := tp.bot.Send(
-		&recipient,
+		&telebot.Chat{ID: tp.chatID},
 		text,
-		&options,
+		&telebot.SendOptions{
+			ParseMode:             telebot.ModeHTML,
+			DisableWebPagePreview: true,
+		},
 	)
 
 	return err

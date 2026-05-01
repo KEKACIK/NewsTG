@@ -12,6 +12,7 @@ type CreateDTO struct {
 }
 
 type GetAllDTO struct {
+	SourceID int
 	Status   string
 	FromDate time.Time
 	ToDate   time.Time
